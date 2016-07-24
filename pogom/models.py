@@ -235,7 +235,7 @@ def parse_map(map_dict, iteration_num, step, step_location):
                     'longitude': p['longitude'],
                     'disappear_time': d_t
                 }
-                if b64encode(str(p['encounter_id'])) not in config['POKEMON_DIC']:
+                if b64encode(str(p['encounter_id'])) not in config['POKEMON_DIC'] and config['HIPCHAT']:
                     config['POKEMON_DIC'][b64encode(str(p['encounter_id']))] = pokemons[p['encounter_id']]['disappear_time']
                     pokename = get_pokemon_name(p['pokemon_data']['pokemon_id'])
                     distanceToPoke = haversine(p['longitude'], p['latitude'], config['ORIGINAL_LONGITUDE'] , config['ORIGINAL_LATITUDE'] ) *1000
