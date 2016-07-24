@@ -69,7 +69,11 @@ if __name__ == '__main__':
     config['ORIGINAL_LONGITUDE'] = position[1]
     config['LOCALE'] = args.locale
     config['CHINA'] = args.china
-
+    config['HIPCHAT'] = args.hipchat
+    if args.hipchat:
+        config['HIPCHAT_KEY'] = load_credentials(os.path.dirname(os.path.realpath(__file__)))['hipchat_key']
+        config['HIPCHAT_ROOM'] = load_credentials(os.path.dirname(os.path.realpath(__file__)))['hipchat_room']
+        log.info("hipchat intergration on, {} {}".format(config['HIPCHAT_KEY'], config['HIPCHAT_ROOM']))
     if not args.only_server:
         create_search_threads(args.num_threads)
         if not args.mock:
@@ -78,7 +82,7 @@ if __name__ == '__main__':
             insert_mock_data()
 
     app = Pogom(__name__)
-
+    config['POKEMON_DIC'] = {}
     if args.cors:
         CORS(app);
 

@@ -13,7 +13,7 @@ import ConfigParser
 import platform
 import logging
 import shutil
-
+from math import radians, cos, sin, asin, sqrt
 from . import config
 
 from exceptions import APIKeyException
@@ -93,6 +93,7 @@ def get_args():
     parser.add_argument('-np', '--no-pokemon', help='Disables Pokemon from the map (including parsing them into local db)', action='store_true', default=False)
     parser.add_argument('-ng', '--no-gyms', help='Disables Gyms from the map (including parsing them into local db)', action='store_true', default=False)
     parser.add_argument('-nk', '--no-pokestops', help='Disables PokeStops from the map (including parsing them into local db)', action='store_true', default=False)
+    parser.add_argument('-hc', '--hipchat', help='Enables hipchat integration', action='store_true', default=False)
     parser.set_defaults(DEBUG=False)
     args = parser.parse_args()
 
@@ -191,3 +192,43 @@ def load_credentials(filepath):
             " Please take a look at the wiki for instructions on how to generate this key,"
             " then add that key to the file!")
     return creds
+
+
+def haversine(lon1, lat1, lon2, lat2):
+    """
+    Calculate the great circle distance between two points 
+    on the earth (specified in decimal degrees)
+    """
+    # convert decimal degrees to radians 
+    lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+    # haversine formula 
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+    c = 2 * asin(sqrt(a))
+    km = 6367 * c
+    return km
+    
+def send_hipchat_message(msg, n=False):
+    import json
+    from urllib2 import Request, urlopen
+
+    V2TOKEN = config['HIPCHAT_KEY']
+    ROOMID = 2956184
+
+# API V2, send message to room:
+    url = 'https://api.hipchat.com/v2/room/%d/notification' % ROOMID
+    message = msg
+    headers = {
+        "content-type": "application/json",
+        "authorization": "Bearer %s" % V2TOKEN}
+    datastr = json.dumps({
+        'message': message,
+        'color': 'yellow',
+        'message_format': 'html',
+        'notify': n})
+    request = Request(url, headers=headers, data=datastr)
+    uo = urlopen(request)
+    rawresponse = ''.join(uo)
+    uo.close()
+    assert uo.code == 204

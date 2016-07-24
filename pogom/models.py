@@ -9,12 +9,12 @@ from peewee import Model, MySQLDatabase, SqliteDatabase, InsertQuery, IntegerFie
 from datetime import datetime
 from datetime import timedelta
 from base64 import b64encode
-
+from geopy.geocoders import GoogleV3
 from . import config
-from .utils import get_pokemon_name, load_credentials, get_args
+from .utils import get_pokemon_name, load_credentials, get_args, haversine, send_hipchat_message
 from .transform import transform_from_wgs_to_gcj
 from .customLog import printPokemon
-
+import time
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(module)11s] [%(levelname)7s] %(message)s')
 
 log = logging.getLogger(__name__)
@@ -217,7 +217,8 @@ def parse_map(map_dict, iteration_num, step, step_location):
     pokestops = {}
     gyms = {}
     scanned = {}
-
+    messageToSend = ""
+    n = False
     cells = map_dict['responses']['GET_MAP_OBJECTS']['map_cells']
     for cell in cells:
         if config['parse_pokemon']:
@@ -234,6 +235,28 @@ def parse_map(map_dict, iteration_num, step, step_location):
                     'longitude': p['longitude'],
                     'disappear_time': d_t
                 }
+                if b64encode(str(p['encounter_id'])) not in config['POKEMON_DIC']:
+                    config['POKEMON_DIC'][b64encode(str(p['encounter_id']))] = pokemons[p['encounter_id']]['disappear_time']
+                    pokename = get_pokemon_name(p['pokemon_data']['pokemon_id'])
+                    distanceToPoke = haversine(p['longitude'], p['latitude'], config['ORIGINAL_LONGITUDE'] , config['ORIGINAL_LATITUDE'] ) *1000
+                    print("Parsing pokemon {} {} ".format(pokename, distanceToPoke))
+                    if distanceToPoke < 250:
+                        disappear_timestamp = time.time() + p['time_till_hidden_ms'] / 1000
+                        #if poke.SpawnPointId not in pokemonMessage:
+                        geolocator = GoogleV3()
+                        loc = geolocator.geocode(str(p['latitude']) + ", " + str(p['longitude']))
+             #            print '[!] poke given location: {}'.format(loc.address.encode('utf-8')) 
+                        secondsLeft = p['time_till_hidden_ms'] / 60000
+                        if distanceToPoke < 75:
+                            n = True
+                        try:
+                            messageToSend += "Distance to <b>{}</b> is <b>{}</b>m, {}min left - <a href='https://www.google.com/maps/dir/{},{}/{},{}'>{}</a> <br>".format(pokename, round(distanceToPoke, 1), secondsLeft, config['ORIGINAL_LATITUDE'], config['ORIGINAL_LONGITUDE'], p['latitude'], p['longitude'], loc.address.encode('utf-8'))
+                        except:
+                            continue
+                        if pokename not in ["Pidgey", "Caterpie", "Drowzee", "Zubat", "Weedle"]:
+                            n = True
+                        print("n is {}".format(n))
+
 
         if iteration_num > 0 or step > 50:
             for f in cell.get('forts', []):
@@ -268,7 +291,8 @@ def parse_map(map_dict, iteration_num, step, step_location):
                             'last_modified': datetime.utcfromtimestamp(
                                 f['last_modified_timestamp_ms'] / 1000.0),
                         }
-
+    if messageToSend != "": 
+        send_hipchat_message(messageToSend, n)
     if pokemons and config['parse_pokemon']:
         log.info("Upserting {} pokemon".format(len(pokemons)))
         bulk_upsert(Pokemon, pokemons)
