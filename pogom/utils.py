@@ -117,8 +117,6 @@ def get_args():
                 config["PASSWORD"] = args.password = getpass.getpass()
             elif args.password is None:
                 args.password = config["PASSWORD"]
-
-
     return args
 
 def insert_mock_data():
