@@ -27,6 +27,7 @@ class Pogom(Flask):
         self.route("/loc", methods=['GET'])(self.loc)
         self.route("/next_loc", methods=['POST'])(self.next_loc)
         self.route("/mobile", methods=['GET'])(self.list_pokemon)
+        self.route("/loc_queue", methods=['GET'])(self.loc_queue)
 
     def fullmap(self):
         args = get_args()
@@ -72,6 +73,9 @@ class Pogom(Flask):
         d['lng']=config['ORIGINAL_LONGITUDE']
 
         return jsonify(d)
+
+    def loc_queue(self):
+        return jsonify(config['NEXT_LOCATION'])
 
     def next_loc(self):
         args = get_args()
