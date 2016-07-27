@@ -11,11 +11,7 @@ from datetime import datetime, timedelta
 from base64 import b64encode
 from geopy.geocoders import GoogleV3
 from . import config
-<<<<<<< HEAD
-from .utils import get_pokemon_name, load_credentials, get_args, haversine, send_hipchat_message
-=======
-from .utils import get_pokemon_name, get_args, send_to_webhook
->>>>>>> upstream/develop
+from .utils import get_pokemon_name, load_credentials, get_args, haversine, send_hipchat_message, send_to_webhook
 from .transform import transform_from_wgs_to_gcj
 from .customLog import printPokemon
 import time
@@ -309,16 +305,11 @@ def parse_map(map_dict, iteration_num, step, step_location):
                             'last_modified': datetime.utcfromtimestamp(
                                 f['last_modified_timestamp_ms'] / 1000.0),
                         }
-<<<<<<< HEAD
     if messageToSend != "": 
         send_hipchat_message(messageToSend, n)
-=======
-
     pokemons_upserted = 0
     pokestops_upserted = 0
     gyms_upserted = 0
-
->>>>>>> upstream/develop
     if pokemons and config['parse_pokemon']:
         pokemons_upserted = len(pokemons)
         log.debug("Upserting {} pokemon".format(len(pokemons)))
