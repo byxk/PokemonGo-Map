@@ -7,11 +7,11 @@ import logging
 import time
 
 from threading import Thread
-#from flask_cors import CORS, cross_origin
+from flask_cors import CORS
 
 from pogom import config
 from pogom.app import Pogom
-from pogom.utils import get_args, insert_mock_data, load_credentials
+from pogom.utils import get_args, insert_mock_data
 from pogom.search import search_loop, create_search_threads
 from pogom.models import init_database, create_tables, Pokemon, Pokestop, Gym
 
@@ -73,7 +73,7 @@ if __name__ == '__main__':
     if args.hipchat:
         config['HIPCHAT_KEY'] = load_credentials(os.path.dirname(os.path.realpath(__file__)))['hipchat_key']
         config['HIPCHAT_ROOM'] = load_credentials(os.path.dirname(os.path.realpath(__file__)))['hipchat_room']
-        log.info("hipchat intergration on, {} {}".format(config['HIPCHAT_KEY'], config['HIPCHAT_ROOM']))
+        log.info("hipchat integration on, {} {}".format(config['HIPCHAT_KEY'], config['HIPCHAT_ROOM']))
     if not args.only_server:
         create_search_threads(args.num_threads)
         if not args.mock:
@@ -90,10 +90,8 @@ if __name__ == '__main__':
         CORS(app);
 
     config['ROOT_PATH'] = app.root_path
-    if args.gmaps_key is not None:
-        config['GMAPS_KEY'] = args.gmaps_key
-    else:
-        config['GMAPS_KEY'] = load_credentials(os.path.dirname(os.path.realpath(__file__)))['gmaps_key']
+    config['GMAPS_KEY'] = args.gmaps_key
+    config['REQ_SLEEP'] = args.scan_delay
 
     if args.no_server:
         while not search_thread.isAlive():

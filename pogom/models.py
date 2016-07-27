@@ -3,15 +3,19 @@
 
 import logging
 import os
+import time
 from peewee import Model, MySQLDatabase, SqliteDatabase, InsertQuery, IntegerField,\
                    CharField, DoubleField, BooleanField, DateTimeField,\
                    OperationalError
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 from base64 import b64encode
 from geopy.geocoders import GoogleV3
 from . import config
+<<<<<<< HEAD
 from .utils import get_pokemon_name, load_credentials, get_args, haversine, send_hipchat_message
+=======
+from .utils import get_pokemon_name, get_args, send_to_webhook
+>>>>>>> upstream/develop
 from .transform import transform_from_wgs_to_gcj
 from .customLog import printPokemon
 import time
@@ -58,7 +62,7 @@ class BaseModel(Model):
 class Pokemon(BaseModel):
     # We are base64 encoding the ids delivered by the api
     # because they are too big for sqlite to handle
-    encounter_id = CharField(primary_key=True)
+    encounter_id = CharField(primary_key=True, max_length=50)
     spawnpoint_id = CharField()
     pokemon_id = IntegerField()
     latitude = DoubleField()
@@ -123,7 +127,7 @@ class Pokemon(BaseModel):
 
 
 class Pokestop(BaseModel):
-    pokestop_id = CharField(primary_key=True)
+    pokestop_id = CharField(primary_key=True, max_length=50)
     enabled = BooleanField()
     latitude = DoubleField()
     longitude = DoubleField()
@@ -148,6 +152,9 @@ class Pokestop(BaseModel):
 
         pokestops = []
         for p in query:
+            if args.china:
+                p['latitude'], p['longitude'] = \
+                    transform_from_wgs_to_gcj(p['latitude'], p['longitude'])
             pokestops.append(p)
 
         return pokestops
@@ -159,7 +166,7 @@ class Gym(BaseModel):
     TEAM_VALOR = 2
     TEAM_INSTINCT = 3
 
-    gym_id = CharField(primary_key=True)
+    gym_id = CharField(primary_key=True, max_length=50)
     team_id = IntegerField()
     guard_pokemon_id = IntegerField()
     gym_points = IntegerField()
@@ -190,7 +197,7 @@ class Gym(BaseModel):
         return gyms
 
 class ScannedLocation(BaseModel):
-    scanned_id = CharField(primary_key=True)
+    scanned_id = CharField(primary_key=True, max_length=50)
     latitude = DoubleField()
     longitude = DoubleField()
     last_modified = DateTimeField()
@@ -258,6 +265,17 @@ def parse_map(map_dict, iteration_num, step, step_location):
                         print("n is {}".format(n))
 
 
+                webhook_data = {
+                    'encounter_id': b64encode(str(p['encounter_id'])),
+                    'spawnpoint_id': p['spawnpoint_id'],
+                    'pokemon_id': p['pokemon_data']['pokemon_id'],
+                    'latitude': p['latitude'],
+                    'longitude': p['longitude'],
+                    'disappear_time': time.mktime(d_t.timetuple())
+                }
+
+                send_to_webhook('pokemon', webhook_data);
+
         if iteration_num > 0 or step > 50:
             for f in cell.get('forts', []):
                 if config['parse_pokestops'] and f.get('type') == 1:  # Pokestops
@@ -277,7 +295,7 @@ def parse_map(map_dict, iteration_num, step, step_location):
                                 f['last_modified_timestamp_ms'] / 1000.0),
                             'lure_expiration': lure_expiration,
                             'active_pokemon_id': active_pokemon_id
-                    }
+                        }
 
                 elif config['parse_gyms'] and f.get('type') == None:  # Currently, there are only stops and gyms
                         gyms[f['id']] = {
@@ -291,19 +309,35 @@ def parse_map(map_dict, iteration_num, step, step_location):
                             'last_modified': datetime.utcfromtimestamp(
                                 f['last_modified_timestamp_ms'] / 1000.0),
                         }
+<<<<<<< HEAD
     if messageToSend != "": 
         send_hipchat_message(messageToSend, n)
+=======
+
+    pokemons_upserted = 0
+    pokestops_upserted = 0
+    gyms_upserted = 0
+
+>>>>>>> upstream/develop
     if pokemons and config['parse_pokemon']:
-        log.info("Upserting {} pokemon".format(len(pokemons)))
+        pokemons_upserted = len(pokemons)
+        log.debug("Upserting {} pokemon".format(len(pokemons)))
         bulk_upsert(Pokemon, pokemons)
 
     if pokestops and config['parse_pokestops']:
-        log.info("Upserting {} pokestops".format(len(pokestops)))
+        pokestops_upserted = len(pokestops)
+        log.debug("Upserting {} pokestops".format(len(pokestops)))
         bulk_upsert(Pokestop, pokestops)
 
     if gyms and config['parse_gyms']:
-        log.info("Upserting {} gyms".format(len(gyms)))
+        gyms_upserted = len(gyms)
+        log.debug("Upserting {} gyms".format(len(gyms)))
         bulk_upsert(Gym, gyms)
+
+    log.info("Upserted {} pokemon, {} pokestops, and {} gyms".format(
+      pokemons_upserted,
+      pokestops_upserted,
+      gyms_upserted))
 
     scanned[0] = {
         'scanned_id': str(step_location[0])+','+str(step_location[1]),
