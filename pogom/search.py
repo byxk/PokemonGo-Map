@@ -120,8 +120,8 @@ def search_thread(args):
             response_dict = send_map_request(api, step_location)
             if response_dict:
                 with lock:
-                        parse_map(response_dict, i, step, step_location)
                     try:
+                        parse_map(response_dict, i, step, step_location)
                     except KeyError:
                         log.error('Scan step {:d} failed. Response dictionary key error.'.format(step))
                         failed_consecutive += 1
