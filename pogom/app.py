@@ -10,7 +10,9 @@ from flask_compress import Compress
 from datetime import datetime
 from s2sphere import *
 from pogom.utils import get_args
-
+import time
+import os
+import sys
 from . import config
 from .models import Pokemon, Gym, Pokestop, ScannedLocation
 
@@ -27,7 +29,7 @@ class Pogom(Flask):
         self.route("/loc", methods=['GET'])(self.loc)
         self.route("/next_loc", methods=['POST'])(self.next_loc)
         self.route("/mobile", methods=['GET'])(self.list_pokemon)
-        self.route("/loc_queue", methods=['GET'])(self.loc_queue)
+        self.route("/restart", methods=['GET'])(self.restart)
 
     def fullmap(self):
         args = get_args()
@@ -76,7 +78,12 @@ class Pogom(Flask):
 
     def loc_queue(self):
         return jsonify(config['NEXT_LOCATION'])
-
+    def restart(self):
+        print "[+] RESTARTING SERVER"
+        sys.stdout.flush()
+        time.sleep(5)
+        os.system("pkill python")
+        return ""
     def next_loc(self):
         args = get_args()
         if args.fixed_location:
